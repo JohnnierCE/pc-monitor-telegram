@@ -1,5 +1,5 @@
-const express = require('express');
-const axios = require('axios');
+const express = require("express");
+const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,49 +8,54 @@ const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
 let lastPingTime = Date.now();
-let noPingInterval = null; // para el temporizador cuando no hay pings
-let secondsWithoutPing = 0;
+let alertSent = false;
+let noPingSeconds = 0;
 
-app.use(express.json());
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    let str = "";
+    if (h > 0) str += `${h} h `;
+    if (m > 0) str += `${m} m `;
+    str += `${s} s`;
+    return str.trim();
+}
 
-// Endpoint para recibir pings
-app.post('/ping', (req, res) => {
-    lastPingTime = Date.now();
-    secondsWithoutPing = 0; // reiniciar contador
-    if (noPingInterval) {
-        clearInterval(noPingInterval);
-        noPingInterval = null;
-    }
-    res.send("Ping recibido ✅");
-});
-
-// Función para enviar mensajes a Telegram
 async function sendTelegramMessage(message) {
     try {
         await axios.post(`https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage`, {
             chat_id: CHAT_ID,
             text: message
         });
+        console.log(`[Telegram] Mensaje enviado: ${message}`);
     } catch (error) {
-        console.error("Error enviando mensaje a Telegram:", error.response?.data || error.message);
+        console.error("[Telegram] Error al enviar mensaje:", error.message);
     }
 }
 
-// Revisar pings cada segundo
 setInterval(() => {
-    let diffSeconds = Math.floor((Date.now() - lastPingTime) / 1000);
+    const now = Date.now();
+    const diffSeconds = Math.floor((now - lastPingTime) / 1000);
 
-    if (diffSeconds > 15 && !noPingInterval) {
-        // Primer fallo detectado → iniciar intervalos de alerta
-        secondsWithoutPing = diffSeconds;
-        sendTelegramMessage(`⚠ No hay pings desde hace más de ${secondsWithoutPing} segundos`);
+    if (diffSeconds > 15) {
+        noPingSeconds = diffSeconds;
+
+        const timeStr = formatTime(noPingSeconds);
+        const msg = `⚠️ No hay pings desde hace más de ${timeStr}`;
         
-        noPingInterval = setInterval(() => {
-            secondsWithoutPing += 15;
-            sendTelegramMessage(`⚠ No hay pings desde hace más de ${secondsWithoutPing} segundos`);
-        }, 15000);
+        // Enviar siempre, no solo una vez
+        sendTelegramMessage(msg);
+        console.log(msg);
     }
-}, 1000);
+}, 15000);
+
+app.get("/ping", (req, res) => {
+    lastPingTime = Date.now();
+    noPingSeconds = 0;
+    console.log(`[Ping] Recibido a las ${new Date().toLocaleTimeString()}`);
+    res.send("Ping recibido");
+});
 
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en puerto ${PORT}`);
