@@ -204,7 +204,7 @@ app.listen(PORT, async () => {
         console.log('📝 Archivo de logs creado');
     }
 
-    await sendTelegramAlert(`🚀 SERVIDOR RAILWAY INICIADO\n📡 Esperando pings de PC\n📅 ${new Date().toLocaleString('es-ES')}`);
+    await sendTelegramAlert(`🚀 SERVIDOR FUCKING INICIADO\n📡 Esperando pings de PC\n📅 ${new Date().toLocaleString('es-ES')}`);
 
     monitoringInterval = setInterval(checkHeartbeat, CHECK_INTERVAL);
     console.log('🔍 Monitoreo iniciado...\n');
