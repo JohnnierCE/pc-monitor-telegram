@@ -8,8 +8,8 @@ const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
 let lastPingTime = Date.now();
-let alertSent = false;
 let noPingSeconds = 0;
+let alertaActiva = false; // Estado para saber si estamos en alerta
 
 function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -34,26 +34,36 @@ async function sendTelegramMessage(message) {
     }
 }
 
+// Monitoreo cada 15 segundos
 setInterval(() => {
     const now = Date.now();
     const diffSeconds = Math.floor((now - lastPingTime) / 1000);
 
     if (diffSeconds > 15) {
         noPingSeconds = diffSeconds;
-
         const timeStr = formatTime(noPingSeconds);
-        const msg = `⚠️ No hay pings desde hace más de ${timeStr}`;
-        
-        // Enviar siempre, no solo una vez
-        sendTelegramMessage(msg);
-        console.log(msg);
+
+        if (!alertaActiva) {
+            sendTelegramMessage(`⚠️ No hay pings desde hace más de ${timeStr}`);
+            alertaActiva = true; // Activar estado de alerta
+        }
+        console.log(`⚠️ No hay pings desde hace más de ${timeStr}`);
     }
 }, 15000);
 
+// Cuando recibe un ping
 app.get("/ping", (req, res) => {
     lastPingTime = Date.now();
     noPingSeconds = 0;
+
     console.log(`[Ping] Recibido a las ${new Date().toLocaleTimeString()}`);
+
+    // Si estaba en alerta, avisar que ya volvió
+    if (alertaActiva) {
+        sendTelegramMessage(`✅ Ping restablecido a las ${new Date().toLocaleTimeString()}`);
+        alertaActiva = false; // Salir de alerta
+    }
+
     res.send("Ping recibido");
 });
 
