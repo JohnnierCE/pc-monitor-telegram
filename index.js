@@ -22,6 +22,7 @@ let monitoringInterval = null;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Enviar mensaje a Telegram
 async function sendTelegramAlert(message) {
     try {
         await axios.post(TELEGRAM_URL, { chat_id: CHAT_ID, text: message }, { timeout: 10000 });
@@ -33,6 +34,7 @@ async function sendTelegramAlert(message) {
     }
 }
 
+// Leer logs
 async function readLogs() {
     try {
         return JSON.parse(await fs.readFile(LOG_FILE, 'utf8'));
@@ -41,6 +43,7 @@ async function readLogs() {
     }
 }
 
+// Escribir logs
 async function writeLogs(logs) {
     try {
         await fs.writeFile(LOG_FILE, JSON.stringify(logs, null, 2));
@@ -49,6 +52,7 @@ async function writeLogs(logs) {
     }
 }
 
+// Guardar último ping
 async function saveLastPing() {
     try {
         await fs.writeFile(LASTPING_FILE, JSON.stringify({ lastPingTime }));
@@ -57,6 +61,7 @@ async function saveLastPing() {
     }
 }
 
+// Cargar último ping
 async function loadLastPing() {
     try {
         const data = JSON.parse(await fs.readFile(LASTPING_FILE, 'utf8'));
@@ -66,6 +71,7 @@ async function loadLastPing() {
     }
 }
 
+// Agregar log de ping
 async function addPingLog(pcName, status, event = 'PING') {
     const logs = await readLogs();
     const now = new Date();
@@ -92,6 +98,7 @@ async function addPingLog(pcName, status, event = 'PING') {
     return newLog;
 }
 
+// Verificar estado de pings
 async function checkHeartbeat() {
     const now = Date.now();
 
@@ -103,34 +110,39 @@ async function checkHeartbeat() {
     const timeSinceLastPing = now - lastPingTime;
     const secondsAgo = Math.floor(timeSinceLastPing / 1000);
 
+    // ALERTA OFFLINE
     if (timeSinceLastPing > TIMEOUT_THRESHOLD) {
-        // ALERTA OFFLINE siempre que haya tenido al menos un ping previo
-        if (isOnline || (!isOnline && lastPingTime !== null && !alertSent)) {
+        if (!alertSent) {
             isOnline = false;
+            alertSent = true;
+
             const message = `🔴 ALERTA: PC DESCONECTADA\n⏰ Último ping hace ${secondsAgo} segundos\n📅 ${new Date().toLocaleString('es-ES')}`;
             console.log('\n' + '🚨'.repeat(20));
             console.log('🚨 PC DESCONECTADA');
             console.log(`⏰ Último ping: hace ${secondsAgo} segundos`);
             console.log('🚨'.repeat(20) + '\n');
+
             await sendTelegramAlert(message);
             await addPingLog('PC-REMOTA', 'OFFLINE', 'DISCONNECT');
-            alertSent = true;
         }
     } else {
         // RECONECTADO
         if (!isOnline || alertSent) {
             isOnline = true;
             alertSent = false;
+
             const message = `🟢 PC RECONECTADA\n✅ Conexión restaurada\n📅 ${new Date().toLocaleString('es-ES')}`;
             console.log('\n' + '✅'.repeat(20));
             console.log('✅ PC RECONECTADA');
             console.log('✅'.repeat(20) + '\n');
+
             await sendTelegramAlert(message);
             await addPingLog('PC-REMOTA', 'ONLINE', 'RECONNECT');
         }
     }
 }
 
+// Endpoint para recibir pings
 app.get('/ping', async (req, res) => {
     try {
         const pcName = req.query.pc || 'PC-REMOTA';
@@ -145,6 +157,7 @@ app.get('/ping', async (req, res) => {
         if (!isOnline) {
             isOnline = true;
             alertSent = false;
+
             const message = `🟢 PC CONECTADA\n🖥️ ${pcName} iniciado\n📅 ${pingLog.localTime}`;
             await sendTelegramAlert(message);
             await addPingLog(pcName, 'ONLINE', 'STARTUP');
@@ -157,6 +170,7 @@ app.get('/ping', async (req, res) => {
     }
 });
 
+// Status
 app.get('/status', async (req, res) => {
     const now = Date.now();
     const timeSinceLastPing = lastPingTime ? now - lastPingTime : null;
@@ -170,16 +184,19 @@ app.get('/status', async (req, res) => {
     });
 });
 
+// Test de Telegram
 app.get('/test-telegram', async (req, res) => {
     const message = `🧪 TEST DEL SERVIDOR\n📡 Monitor funcionando correctamente\n📅 ${new Date().toLocaleString('es-ES')}`;
     const sent = await sendTelegramAlert(message);
     res.json({ success: sent, message: sent ? 'Test enviado' : 'Error enviando test' });
 });
 
+// Health
 app.get('/health', (req, res) => {
     res.json({ status: 'OK', uptime: process.uptime(), timestamp: new Date().toISOString(), isMonitoring: monitoringInterval !== null });
 });
 
+// Iniciar servidor
 app.listen(PORT, async () => {
     console.log('\n' + '🚀'.repeat(30));
     console.log('🚀 MONITOR DE PC CON TELEGRAM INICIADO EN RAILWAY');
@@ -204,12 +221,13 @@ app.listen(PORT, async () => {
         console.log('📝 Archivo de logs creado');
     }
 
-    await sendTelegramAlert(`🚀 SERVIDOR FUCKING INICIADO\n📡 Esperando pings de PC\n📅 ${new Date().toLocaleString('es-ES')}`);
+    await sendTelegramAlert(`🚀 SERVIDOR RAILWAY INICIADO\n📡 Esperando pings de PC\n📅 ${new Date().toLocaleString('es-ES')}`);
 
     monitoringInterval = setInterval(checkHeartbeat, CHECK_INTERVAL);
     console.log('🔍 Monitoreo iniciado...\n');
 });
 
+// Cierre de servidor
 process.on('SIGINT', async () => {
     console.log('\n🛑 Cerrando servidor...');
     if (monitoringInterval) clearInterval(monitoringInterval);
@@ -218,6 +236,7 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 
+// Errores no capturados
 process.on('uncaughtException', async (error) => {
     console.error('💥 Error crítico:', error);
     await sendTelegramAlert(`💥 ERROR EN SERVIDOR RAILWAY\n🔧 ${error.message}\n📅 ${new Date().toLocaleString('es-ES')}`);
