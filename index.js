@@ -7,9 +7,21 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-let lastPingTime = Date.now();
-let noPingSeconds = 0;
-let alertaActiva = false; // Estado para saber si estamos en alerta
+const ALERT_INTERVAL_MS = 15000; // 5 minutos
+const PING_TIMEOUT_S = 15; // segundos sin ping para considerar caída
+
+// Lista de PCs a monitorear
+const EXPECTED_IDS = ["PC1", "PC2", "PC3"];
+
+// Inicializar objetos para último ping y estado alerta
+const lastPingTimes = {};
+const alertaActiva = {};
+
+// Inicializamos valores para cada PC esperado
+for (const id of EXPECTED_IDS) {
+    lastPingTimes[id] = 0;  // nunca ha hecho ping aún
+    alertaActiva[id] = false;
+}
 
 function formatTime(seconds) {
     const h = Math.floor(seconds / 3600);
@@ -34,36 +46,43 @@ async function sendTelegramMessage(message) {
     }
 }
 
-// Monitoreo cada 15 segundos
+// Monitoreo cada 5 minutos
 setInterval(() => {
     const now = Date.now();
-    const diffSeconds = Math.floor((now - lastPingTime) / 1000);
 
-    if (diffSeconds > 15) {
-        noPingSeconds = diffSeconds;
-        const timeStr = formatTime(noPingSeconds);
+    for (const id of EXPECTED_IDS) {
+        const diffSeconds = Math.floor((now - lastPingTimes[id]) / 1000);
 
-        // Enviar siempre la alerta cada 15 segundos si no hay ping
-        sendTelegramMessage(`⚠️ No hay pings desde hace más de ${timeStr}`);
+        if (diffSeconds > PING_TIMEOUT_S) {
+            const timeStr = formatTime(diffSeconds);
 
-        console.log(`⚠️ No hay pings desde hace más de ${timeStr}`);
+            if (!alertaActiva[id]) {
+                sendTelegramMessage(`⚠️ ${id} no ha enviado ping desde hace más de ${timeStr}`);
+                alertaActiva[id] = true;
+            }
+
+            console.log(`⚠️ ${id} no ha enviado ping desde hace más de ${timeStr}`);
+        }
     }
-}, 300000);
+}, ALERT_INTERVAL_MS);
 
-// Cuando recibe un ping
 app.get("/ping", (req, res) => {
-    lastPingTime = Date.now();
-    noPingSeconds = 0;
+    const id = req.query.id;
 
-    console.log(`[Ping] Recibido a las ${new Date().toLocaleTimeString()}`);
-
-    // Si estaba en alerta, avisar que ya volvió
-    if (alertaActiva) {
-        sendTelegramMessage(`✅ Ping restablecido a las ${new Date().toLocaleTimeString()}`);
-        alertaActiva = false; // Salir de alerta
+    if (!id || !EXPECTED_IDS.includes(id)) {
+        return res.status(400).send("ID inválido o no permitido");
     }
 
-    res.send("Ping recibido");
+    lastPingTimes[id] = Date.now();
+
+    console.log(`[Ping] Recibido ping de ${id} a las ${new Date().toLocaleTimeString()}`);
+
+    if (alertaActiva[id]) {
+        sendTelegramMessage(`✅ Ping restablecido de ${id} a las ${new Date().toLocaleTimeString()}`);
+        alertaActiva[id] = false;
+    }
+
+    res.send(`Ping recibido para ${id}`);
 });
 
 app.listen(PORT, () => {
