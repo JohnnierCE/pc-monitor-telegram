@@ -7,20 +7,21 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 15000; // 5 minutos
-const PING_TIMEOUT_S = 15; // segundos sin ping para considerar caída
+const ALERT_INTERVAL_MS = 10000;   // Cada 15 segundos revisa estado
+const ALERT_REPEAT_MS = 15000;    // Repite alerta cada 5 minutos si sigue caída
+const PING_TIMEOUT_S = 15;         // Considera caída si no hay ping en 15 segundos
 
-// Lista de PCs a monitorear
 const EXPECTED_IDS = ["PC1", "PC2", "PC3"];
 
-// Inicializar objetos para último ping y estado alerta
 const lastPingTimes = {};
 const alertaActiva = {};
+const lastAlertSentTime = {};
 
-// Inicializamos valores para cada PC esperado
+// Inicializamos los estados
 for (const id of EXPECTED_IDS) {
-    lastPingTimes[id] = 0;  // nunca ha hecho ping aún
+    lastPingTimes[id] = 0;
     alertaActiva[id] = false;
+    lastAlertSentTime[id] = 0;
 }
 
 function formatTime(seconds) {
@@ -46,7 +47,6 @@ async function sendTelegramMessage(message) {
     }
 }
 
-// Monitoreo cada 5 minutos
 setInterval(() => {
     const now = Date.now();
 
@@ -56,9 +56,11 @@ setInterval(() => {
         if (diffSeconds > PING_TIMEOUT_S) {
             const timeStr = formatTime(diffSeconds);
 
-            if (!alertaActiva[id]) {
+            // Enviar alerta si no está activa o si ya pasó tiempo para repetir
+            if (!alertaActiva[id] || (now - lastAlertSentTime[id]) > ALERT_REPEAT_MS) {
                 sendTelegramMessage(`⚠️ ${id} no ha enviado ping desde hace más de ${timeStr}`);
                 alertaActiva[id] = true;
+                lastAlertSentTime[id] = now;
             }
 
             console.log(`⚠️ ${id} no ha enviado ping desde hace más de ${timeStr}`);
@@ -80,6 +82,7 @@ app.get("/ping", (req, res) => {
     if (alertaActiva[id]) {
         sendTelegramMessage(`✅ Ping restablecido de ${id} a las ${new Date().toLocaleTimeString()}`);
         alertaActiva[id] = false;
+        lastAlertSentTime[id] = 0;
     }
 
     res.send(`Ping recibido para ${id}`);
