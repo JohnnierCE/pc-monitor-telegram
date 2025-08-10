@@ -43,10 +43,9 @@ setInterval(() => {
         noPingSeconds = diffSeconds;
         const timeStr = formatTime(noPingSeconds);
 
-        if (!alertaActiva) {
-            sendTelegramMessage(`⚠️ No hay pings desde hace más de ${timeStr}`);
-            alertaActiva = true; // Activar estado de alerta
-        }
+        // Enviar siempre la alerta cada 15 segundos si no hay ping
+        sendTelegramMessage(`⚠️ No hay pings desde hace más de ${timeStr}`);
+
         console.log(`⚠️ No hay pings desde hace más de ${timeStr}`);
     }
 }, 15000);
