@@ -48,7 +48,7 @@ setInterval(() => {
 
         console.log(`⚠️ No hay pings desde hace más de ${timeStr}`);
     }
-}, 15000);
+}, 300000);
 
 // Cuando recibe un ping
 app.get("/ping", (req, res) => {
