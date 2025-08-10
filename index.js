@@ -79,7 +79,7 @@ app.get("/ping", (req, res) => {
     console.log(`[Ping] Recibido ping de ${id} a las ${new Date().toLocaleTimeString()}`);
 
     if (alertaActiva[id]) {
-        sendTelegramMessage(`✅ Ping restablecido de ${id} a las ${new Date().toLocaleTimeString()}`);
+        sendTelegramMessage(`✅ Ping restablecido ${id} a las ${new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })}`);
         alertaActiva[id] = false;
         lastAlertSentTime[id] = 0;
     }
