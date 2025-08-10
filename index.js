@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 10000;   // Cada 15 segundos revisa estado
+const ALERT_INTERVAL_MS = 15000;   // Cada 15 segundos revisa estado
 const ALERT_REPEAT_MS = 15000;    // Repite alerta cada 5 minutos si sigue caída
 const PING_TIMEOUT_S = 15;         // Considera caída si no hay ping en 15 segundos
 
@@ -17,9 +17,9 @@ const lastPingTimes = {};
 const alertaActiva = {};
 const lastAlertSentTime = {};
 
-// Inicializamos los estados
+// Inicializamos los estados con fecha actual para evitar tiempos gigantes
 for (const id of EXPECTED_IDS) {
-    lastPingTimes[id] = 0;
+    lastPingTimes[id] = Date.now();  // <-- Aquí el cambio
     alertaActiva[id] = false;
     lastAlertSentTime[id] = 0;
 }
@@ -56,7 +56,6 @@ setInterval(() => {
         if (diffSeconds > PING_TIMEOUT_S) {
             const timeStr = formatTime(diffSeconds);
 
-            // Enviar alerta si no está activa o si ya pasó tiempo para repetir
             if (!alertaActiva[id] || (now - lastAlertSentTime[id]) > ALERT_REPEAT_MS) {
                 sendTelegramMessage(`⚠️ ${id} no ha enviado ping desde hace más de ${timeStr}`);
                 alertaActiva[id] = true;
