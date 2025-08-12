@@ -11,7 +11,7 @@ const ALERT_INTERVAL_MS = 15000;   // Cada 15 segundos revisa estado
 const ALERT_REPEAT_MS = 15000;    // Repite alerta cada 5 minutos si sigue caída
 const PING_TIMEOUT_S = 15;         // Considera caída si no hay ping en 15 segundos
 
-const EXPECTED_IDS = ["PC1", "PC2", "PC3"];
+const EXPECTED_IDS = ["SV DIGITAL", "PC2", "PC3"];
 
 const lastPingTimes = {};
 const alertaActiva = {};
