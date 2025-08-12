@@ -7,10 +7,10 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 60000;   // Verifica estado cada 1 minuto
+const ALERT_INTERVAL_MS = 50000;   // Verifica estado cada 1 minuto
 const ALERT_REPEAT_MS = 60000;     // Repite alerta cada 1 minuto si sigue caída
 const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 60 seg
-const LOG_CLEAR_INTERVAL_MS = 2 * 60 * 60 * 1000; // Limpiar consola cada 2 horas
+const LOG_CLEAR_INTERVAL_MS = 30 * 60 * 1000; // Limpiar consola cada 30 minutos
 
 const EXPECTED_IDS = ["SV_DIGITAL", "EC_DIGITAL", "NI_DIGITAL"];
 
