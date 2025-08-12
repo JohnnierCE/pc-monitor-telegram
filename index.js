@@ -7,9 +7,10 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 60000;   // Cada 15 segundos revisa estado
-const ALERT_REPEAT_MS = 60000;    // Repite alerta cada 5 minutos si sigue caída
-const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 15 segundos
+const ALERT_INTERVAL_MS = 60000;   // Verifica estado cada 1 minuto
+const ALERT_REPEAT_MS = 60000;     // Repite alerta cada 1 minuto si sigue caída
+const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 60 seg
+const LOG_CLEAR_INTERVAL_MS = 2 * 60 * 60 * 1000; // Limpiar consola cada 2 horas
 
 const EXPECTED_IDS = ["SV_DIGITAL", "PC2", "PC3"];
 
@@ -17,9 +18,9 @@ const lastPingTimes = {};
 const alertaActiva = {};
 const lastAlertSentTime = {};
 
-// Inicializamos los estados con fecha actual para evitar tiempos gigantes
+// Inicialización de estados
 for (const id of EXPECTED_IDS) {
-    lastPingTimes[id] = Date.now();  // <-- Aquí el cambio
+    lastPingTimes[id] = Date.now();
     alertaActiva[id] = false;
     lastAlertSentTime[id] = 0;
 }
@@ -47,6 +48,7 @@ async function sendTelegramMessage(message) {
     }
 }
 
+// Verificación periódica de pings
 setInterval(() => {
     const now = Date.now();
 
@@ -67,6 +69,13 @@ setInterval(() => {
     }
 }, ALERT_INTERVAL_MS);
 
+// Limpieza de log cada 2 horas
+setInterval(() => {
+    console.clear();
+    console.log(`[LOG] Consola limpiada automáticamente a las ${new Date().toLocaleTimeString()}`);
+}, LOG_CLEAR_INTERVAL_MS);
+
+// Endpoint de ping
 app.get("/ping", (req, res) => {
     const id = req.query.id;
 
