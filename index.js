@@ -7,9 +7,9 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 15000;   // Cada 15 segundos revisa estado
-const ALERT_REPEAT_MS = 15000;    // Repite alerta cada 5 minutos si sigue caída
-const PING_TIMEOUT_S = 15;         // Considera caída si no hay ping en 15 segundos
+const ALERT_INTERVAL_MS = 60000;   // Cada 15 segundos revisa estado
+const ALERT_REPEAT_MS = 60000;    // Repite alerta cada 5 minutos si sigue caída
+const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 15 segundos
 
 const EXPECTED_IDS = ["SV_DIGITAL", "PC2", "PC3"];
 
