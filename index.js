@@ -7,10 +7,10 @@ const PORT = process.env.PORT || 3000;
 const TELEGRAM_TOKEN = "8308992460:AAHoSoA9rWhHJCt9FuX2RkdBCVhmdnSX6d8";
 const CHAT_ID = "5703312558";
 
-const ALERT_INTERVAL_MS = 50000;   // Verifica estado cada 1 minuto
-const ALERT_REPEAT_MS = 60000;     // Repite alerta cada 1 minuto si sigue caída
+const ALERT_INTERVAL_MS = 50000;   // Verifica estado cada 50 seg
+const ALERT_REPEAT_MS = 60000;     // Repite alerta cada 1 min si sigue caída
 const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 60 seg
-const LOG_CLEAR_INTERVAL_MS = 30 * 60 * 1000; // Limpiar consola cada 30 minutos
+const LOG_CLEAR_INTERVAL_MS = 30 * 60 * 1000; // Limpiar consola cada 30 min
 
 const EXPECTED_IDS = ["SV_DIGITAL", "EC_DIGITAL", "NI_DIGITAL"];
 
@@ -18,7 +18,7 @@ const lastPingTimes = {};
 const alertaActiva = {};
 const lastAlertSentTime = {};
 
-// Inicialización de estados
+// Inicialización
 for (const id of EXPECTED_IDS) {
     lastPingTimes[id] = Date.now();
     alertaActiva[id] = false;
@@ -48,8 +48,17 @@ async function sendTelegramMessage(message) {
     }
 }
 
-// Verificación periódica de pings
+// Función para saber si está en el horario de monitoreo (11:00 a 23:00)
+function enHorarioActivo() {
+    const ahora = new Date().toLocaleString("en-US", { timeZone: "America/Bogota" });
+    const hora = new Date(ahora).getHours();
+    return hora >= 11 && hora < 23;
+}
+
+// Verificación periódica de pings (solo si está en horario)
 setInterval(() => {
+    if (!enHorarioActivo()) return;
+
     const now = Date.now();
 
     for (const id of EXPECTED_IDS) {
@@ -69,7 +78,7 @@ setInterval(() => {
     }
 }, ALERT_INTERVAL_MS);
 
-// Limpieza de log cada 2 horas
+// Limpieza de log cada 30 minutos
 setInterval(() => {
     console.clear();
     console.log(`[LOG] Consola limpiada automáticamente a las ${new Date().toLocaleTimeString()}`);
@@ -77,15 +86,17 @@ setInterval(() => {
 
 // Endpoint de ping
 app.get("/ping", (req, res) => {
-    const id = req.query.id;
+    if (!enHorarioActivo()) {
+        return res.status(403).send("Monitoreo activo solo entre 11:00 y 23:00 hora Colombia.");
+    }
 
+    const id = req.query.id;
     if (!id || !EXPECTED_IDS.includes(id)) {
         return res.status(400).send("ID inválido o no permitido");
     }
 
     lastPingTimes[id] = Date.now();
-
-    console.log(`[Ping] Recibido ping de ${id} a las ${new Date().toLocaleTimeString()}`);
+    console.log(`[Ping] Recibido ping de ${id} a las ${new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })}`);
 
     if (alertaActiva[id]) {
         sendTelegramMessage(`✅ Ping ${id} a las ${new Date().toLocaleTimeString("es-CO", { timeZone: "America/Bogota" })}`);
