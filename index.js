@@ -12,7 +12,7 @@ const ALERT_REPEAT_MS = 60000;     // Repite alerta cada 1 min si sigue caída
 const PING_TIMEOUT_S = 60;         // Considera caída si no hay ping en 60 seg
 const LOG_CLEAR_INTERVAL_MS = 30 * 60 * 1000; // Limpiar consola cada 30 min
 
-const EXPECTED_IDS = ["SV_DIGITAL", "EC_DIGITAL", "NI_DIGITAL","RD_UTIL","CR_DIGITAL"];
+const EXPECTED_IDS = ["SV_DIGITAL", "EC_DIGITAL", "NI_DIGITAL","RD_UTIL","CR_DIGITAL","CR_WHATSAPP"];
 
 const lastPingTimes = {};
 const alertaActiva = {};
